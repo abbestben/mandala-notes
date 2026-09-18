@@ -149,6 +149,23 @@ kbd{font-family:var(--ui);font-size:12px;border:1px solid var(--line);border-bot
   opacity:.6;line-height:1;z-index:2;pointer-events:none}
 .ccard .addr{bottom:5px;right:8px}
 
+/* outline (歸納) */
+.outToolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.outToolbar .spacer{flex:1}
+.outList{display:flex;flex-direction:column;gap:3px;width:100%;max-width:760px}
+.outRow{display:flex;align-items:center;gap:2px;background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:3px 6px}
+.outRow.dragging{opacity:.45}
+.outRow .handle{cursor:grab;color:var(--muted);padding:2px 6px;touch-action:none;user-select:none;font-size:15px}
+.outRow .handle:active{cursor:grabbing}
+.outRow input{flex:1;min-width:0;border:0;background:transparent;font-family:var(--idea);font-size:15px;color:var(--ink);padding:6px 4px}
+.outRow input:focus{outline:none}
+.outRow .obtn{border:0;background:none;color:var(--muted);font-size:13px;width:24px;height:24px;border-radius:5px;cursor:pointer;flex:none}
+.outRow .obtn:hover{background:var(--indigo-soft);color:var(--indigo)}
+.outRow .obtn:disabled{opacity:.3;cursor:default}
+.outRow .obtn:disabled:hover{background:none;color:var(--muted)}
+.outRow .del:hover{background:var(--seal-soft);color:var(--seal)}
+.outEmpty{color:var(--muted);font-size:14px;padding:24px 4px;max-width:36em}
+
 /* drawer */
 .drawer{position:fixed;inset:0;background:rgba(10,12,20,.35);display:none;z-index:20}
 .drawer.open{display:block}
@@ -317,6 +334,7 @@ function render(){
   if(cur.view === "big") return renderBig();
   if(cur.view === "tree") return renderTree();
   if(cur.view === "canvas") return renderCanvas();
+  if(cur.view === "outline") return renderOutline();
   renderSheet();
 }
 
@@ -375,6 +393,7 @@ function projHeader(){
       <button data-act="view" data-v="big" aria-pressed="${cur.view==="big"}">81 格</button>
       <button data-act="view" data-v="canvas" aria-pressed="${cur.view==="canvas"}">攤開</button>
       <button data-act="view" data-v="tree" aria-pressed="${cur.view==="tree"}">全貌</button>
+      <button data-act="view" data-v="outline" aria-pressed="${cur.view==="outline"}">歸納</button>
     </div>
     ${path.length>1?`<button class="btn" data-act="up">回上一層</button>`:""}
     <span class="spacer"></span>
@@ -654,6 +673,102 @@ function cvZoomBy(factor){
   paintCanvas(); scheduleSave(P().id);
 }
 
+/* ---------- outline (歸納) ---------- */
+function ensureOutline(){ if(!P().outline) P().outline = []; return P().outline; }
+function importOutline(){
+  const rows = [];
+  (function walk(id, depth){
+    const n = N(id);
+    (n.cells||[]).forEach(cid=>{
+      const cn = cid && N(cid);
+      if(cn && cn.text.trim()){ rows.push({id:uid("o"), text:cn.text.trim(), depth}); walk(cn.id, depth+1); }
+    });
+  })(P().rootId, 0);
+  P().outline = rows; touch();
+}
+function outSubtreeEnd(rows, i){ let j = i+1; while(j<rows.length && rows[j].depth > rows[i].depth) j++; return j; }
+function outIndent(id){
+  const rows = ensureOutline(); const i = rows.findIndex(r=>r.id===id); if(i<0) return;
+  const maxAllowed = i>0 ? rows[i-1].depth+1 : 0;
+  if(rows[i].depth >= maxAllowed) return;
+  const end = outSubtreeEnd(rows, i);
+  for(let k=i;k<end;k++) rows[k].depth++;
+  touch(); render();
+}
+function outOutdent(id){
+  const rows = ensureOutline(); const i = rows.findIndex(r=>r.id===id); if(i<0) return;
+  if(rows[i].depth===0) return;
+  const end = outSubtreeEnd(rows, i);
+  for(let k=i;k<end;k++) rows[k].depth = Math.max(0, rows[k].depth-1);
+  touch(); render();
+}
+function outlineToMarkdown(p){
+  const rows = p.outline || [];
+  const lines = [`# ${p.title}`, ""];
+  rows.forEach(r=> lines.push("  ".repeat(r.depth) + "- " + (r.text.trim().replace(/\n+/g," ") || "（空白）")));
+  return lines.join("\n");
+}
+function outRowHtml(r){
+  return `<div class="outRow" data-id="${r.id}" style="margin-left:${r.depth*26}px">
+    <span class="handle">⠿</span>
+    <button class="obtn" data-act="outOutdent" data-id="${r.id}" title="提升層級" ${r.depth===0?"disabled":""}>←</button>
+    <button class="obtn" data-act="outIndent" data-id="${r.id}" title="降為子項">→</button>
+    <input value="${esc(r.text)}" data-id="${r.id}" placeholder="…">
+    <button class="obtn del" data-act="outDel" data-id="${r.id}" title="刪除這一行">×</button>
+  </div>`;
+}
+function renderOutline(){
+  const rows = ensureOutline();
+  app.innerHTML = topBar(true) + projHeader() + `
+    <div class="outToolbar">
+      <button class="btn" data-act="outImport">${rows.length? "從收集重新匯入（覆蓋）":"從收集匯入"}</button>
+      <button class="btn" data-act="outAdd">新增一行</button>
+      <span class="spacer"></span>
+      <button class="btn" data-act="outExportMd">匯出歸納大綱</button>
+    </div>
+    ${rows.length
+      ? `<div class="outList" id="outList">${rows.map(outRowHtml).join("")}</div>`
+      : `<p class="outEmpty">還沒有內容。先去「攤開」收集想法，再回來按上面「從收集匯入」，把目前寫好的每一張紙謄成一份可以拖曳調整、重新分類的大綱。</p>`}`;
+  bindOutlineEvents();
+}
+let outDrag = null;
+function bindOutlineEvents(){
+  const list = document.getElementById("outList"); if(!list) return;
+  list.querySelectorAll(".outRow .handle").forEach(h=>{
+    h.addEventListener("pointerdown", e=>{
+      const row = h.closest(".outRow");
+      outDrag = {id: row.dataset.id};
+      row.classList.add("dragging");
+      document.addEventListener("pointermove", outDragMove);
+      document.addEventListener("pointerup", outDragUp, {once:true});
+    });
+  });
+}
+function outDragMove(e){
+  if(!outDrag) return;
+  const list = document.getElementById("outList"); if(!list) return;
+  const draggingEl = list.querySelector(".outRow.dragging"); if(!draggingEl) return;
+  const rowsEls = [...list.querySelectorAll(".outRow")].filter(el=>el!==draggingEl);
+  const after = rowsEls.find(el=>{
+    const r = el.getBoundingClientRect();
+    return e.clientY < r.top + r.height/2;
+  });
+  if(after) list.insertBefore(draggingEl, after);
+  else list.appendChild(draggingEl);
+}
+function outDragUp(){
+  document.removeEventListener("pointermove", outDragMove);
+  if(!outDrag) return;
+  const list = document.getElementById("outList");
+  if(list){
+    const order = [...list.querySelectorAll(".outRow")].map(el=>el.dataset.id);
+    const rows = ensureOutline(); const byId = new Map(rows.map(r=>[r.id,r]));
+    P().outline = order.map(id=>byId.get(id)).filter(Boolean);
+    const draggingEl = list.querySelector(".outRow.dragging"); if(draggingEl) draggingEl.classList.remove("dragging");
+  }
+  outDrag = null; touch();
+}
+
 function openDrawer(){
   const p = P(); const list = unfinished(p);
   const ul = document.getElementById("unfinishedList");
@@ -750,6 +865,19 @@ app.addEventListener("click", e=>{
     case "cvZoomIn": cvZoomBy(1.25); break;
     case "cvZoomOut": cvZoomBy(1/1.25); break;
     case "cvCenter": cv.camera.x=0; cv.camera.y=0; cv.camera.zoom=1; paintCanvas(); scheduleSave(P().id); break;
+    case "outImport": {
+      const rows = ensureOutline();
+      const go2 = ()=>{ importOutline(); render(); };
+      if(rows.length) modal("從收集匯入", `<p style="margin:0">這會覆蓋目前歸納清單裡的內容，換成收集階段目前寫好的所有紙張。確定要覆蓋嗎？</p>`,
+        [{label:"取消"},{label:"覆蓋匯入", primary:true, fn:go2}]);
+      else go2();
+      break;
+    }
+    case "outAdd": { const rows = ensureOutline(); rows.push({id:uid("o"), text:"", depth: rows.length?rows[rows.length-1].depth:0}); touch(); render(); break; }
+    case "outIndent": outIndent(id); break;
+    case "outOutdent": outOutdent(id); break;
+    case "outDel": { const rows = ensureOutline(); const i = rows.findIndex(r=>r.id===id); if(i>=0){ rows.splice(i,1); touch(); render(); } break; }
+    case "outExportMd": offerFile(safeName(P().title)+"-歸納.md", outlineToMarkdown(P()), "匯出歸納大綱"); break;
   }
 });
 document.getElementById("drawer").addEventListener("click", e=>{
@@ -763,6 +891,12 @@ app.addEventListener("change", e=>{
 });
 
 app.addEventListener("input", e=>{
+  const inp = e.target;
+  if(inp.tagName==="INPUT" && cur.view==="outline" && inp.dataset.id){
+    const rows = ensureOutline(); const r = rows.find(x=>x.id===inp.dataset.id);
+    if(r){ r.text = inp.value; touch(); }
+    return;
+  }
   const ta = e.target; if(ta.tagName!=="TEXTAREA" || !cur.pid) return;
   const n = N(cur.nid); ensureCells(n);
   if(ta.dataset.center){
