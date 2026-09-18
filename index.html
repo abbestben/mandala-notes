@@ -81,7 +81,9 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,a:focus-visible{
 @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
 
 .grid{width:min(94vw,600px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:7px}
-.cell{position:relative;background:var(--sheet);border:1.5px dashed var(--seal);border-radius:10px;display:flex}
+.cell{position:relative;background:var(--sheet);border:1.5px dashed var(--seal);border-radius:10px;display:flex;flex-direction:column}
+.cicon{font-size:26px;text-align:center;line-height:1;padding-top:9px}
+.cicon:empty{display:none;padding:0}
 .cell.filled{border-style:solid;border-color:var(--line)}
 .cell.filled:focus-within,.cell:focus-within{border-color:var(--indigo);border-style:solid}
 .cell textarea{flex:1;width:100%;border:0;background:transparent;resize:none;padding:10px 10px 26px;font-family:var(--idea);color:var(--ink);text-align:center;line-height:1.3;font-size:var(--fs,19px);border-radius:10px;display:block}
@@ -139,6 +141,7 @@ kbd{font-family:var(--ui);font-size:12px;border:1px solid var(--line);border-bot
   border-radius:10px;padding:8px 10px;font-family:var(--idea);text-align:center;cursor:grab;box-shadow:0 1px 4px rgba(20,20,30,.10);
   user-select:none;touch-action:none}
 .ccard:active{cursor:grabbing}
+.ccard .cicon{font-size:22px;line-height:1;margin-bottom:3px}
 .ccard .tx{font-size:13px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word}
 .ccard .cf{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--ui)}
 .ccard.root{background:var(--indigo);border-color:var(--indigo);color:#fff}
@@ -238,6 +241,54 @@ let syncLabel = "只存在這台裝置";
 /* ---------- utils ---------- */
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* keyword -> emoji guess, a free/offline first pass at "圖優先、字其次" */
+const ICON_MAP = [
+  [/記者會|發表會|發布會|公關|媒體|新聞/, "📰"],
+  [/電池|充電|慢充|快充|電力|耗電|續電/, "🔋"],
+  [/加油|汽油|油錢|燃料|油箱/, "⛽"],
+  [/續航|里程|公里|距離|路程/, "🛣️"],
+  [/重量|公斤|噸|多重/, "⚖️"],
+  [/耗材|保養|維修|零件|故障/, "🔧"],
+  [/售價|價格|萬元|成本|預算|花費|費用|多少錢|錢/, "💰"],
+  [/接送|小孩|孩子|學生|上學|放學/, "🧒"],
+  [/市場|客群|受眾|目標客戶|使用者|族群/, "🎯"],
+  [/三輪車|機車|汽車|自行車|單車|貨車|卡車|車輛/, "🚗"],
+  [/上市|發布|推出|首發/, "🚀"],
+  [/時間|日期|排程|截止|期限|幾點|幾月/, "📅"],
+  [/地點|地區|城市|偏鄉|區域|位置|哪裡/, "📍"],
+  [/團隊|夥伴|合作|同事|人力|人手/, "🤝"],
+  [/風險|問題|困難|挑戰|障礙|瓶頸/, "⚠️"],
+  [/成長|成長率|提升|增加|進步|變多/, "📈"],
+  [/下降|減少|降低|變少/, "📉"],
+  [/想法|點子|靈感|創意|發想/, "💡"],
+  [/技術|科技|軟體|系統|程式|app|App|APP/, "💻"],
+  [/健康|醫療|身體|疾病|看醫生/, "🩺"],
+  [/長輩|老人|爺爺|奶奶/, "👴"],
+  [/心情|感受|情緒|喜歡|討厭|愛/, "❤️"],
+  [/學習|教育|課程|訓練|上課/, "📚"],
+  [/旅行|旅遊|出遊|景點|出國/, "✈️"],
+  [/食物|餐廳|美食|吃|料理/, "🍽️"],
+  [/環境|環保|永續|汙染|碳排/, "🌱"],
+  [/數據|資料|分析|統計|報表/, "📊"],
+  [/行銷|廣告|推廣|宣傳|曝光/, "📣"],
+  [/客戶|顧客|消費者/, "🙋"],
+  [/產品|服務/, "📦"],
+  [/法律|合約|合規|法規|條款/, "⚖️"],
+  [/會議|討論|開會|溝通/, "🗣️"],
+  [/家庭|家人|父母|小家庭/, "🏠"],
+  [/工作|職場|上班|加班/, "💼"],
+  [/睡眠|休息|放鬆|睡覺/, "😴"],
+  [/運動|健身|訓練|跑步/, "🏃"],
+  [/音樂|歌|演唱|唱歌/, "🎵"],
+  [/安全|保護|防護|防盜/, "🛡️"],
+  [/電動|電力驅動|馬達/, "⚡"],
+];
+function guessIcon(text){
+  text = (text||"").trim(); if(!text) return "";
+  for(const [re, icon] of ICON_MAP) if(re.test(text)) return icon;
+  return "";
+}
 function toast(msg){
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
@@ -406,10 +457,11 @@ function renderSheet(){
   const n = N(cur.nid); ensureCells(n);
   const selfAddr = addrOf(cur.nid);
   let cells = new Array(9);
-  cells[4] = `<div class="cell center" id="centerCell">${selfAddr?`<div class="addr">${esc(selfAddr)}</div>`:""}<textarea data-center="1" aria-label="中心" rows="3">${esc(n.text)}</textarea></div>`;
+  cells[4] = `<div class="cell center" id="centerCell">${selfAddr?`<div class="addr">${esc(selfAddr)}</div>`:""}<div class="cicon">${guessIcon(n.text)}</div><textarea data-center="1" aria-label="中心" rows="3">${esc(n.text)}</textarea></div>`;
   for(let i=0;i<8;i++){
     const addr = selfAddr ? selfAddr+"-"+NUM[i] : String(NUM[i]);
-    cells[POS[i]] = `<div class="cell" data-i="${i}"><div class="addr">${esc(addr)}</div><textarea data-i="${i}" aria-label="第 ${i+1} 格" placeholder="…" rows="3">${esc(cellText(n,i))}</textarea><button class="dive" data-act="dive" data-i="${i}"></button></div>`;
+    const txt = cellText(n,i);
+    cells[POS[i]] = `<div class="cell" data-i="${i}"><div class="addr">${esc(addr)}</div><div class="cicon">${guessIcon(txt)}</div><textarea data-i="${i}" aria-label="第 ${i+1} 格" placeholder="…" rows="3">${esc(txt)}</textarea><button class="dive" data-act="dive" data-i="${i}"></button></div>`;
   }
   app.innerHTML = topBar(true) + projHeader() + `<div class="stage">
     <div class="counter" id="counter" aria-live="polite"></div>
@@ -581,7 +633,9 @@ function renderCanvas(){
     card.className = "ccard" + (n.id===P().rootId ? " root" : "") + (f===8 ? " full" : "");
     card.dataset.id = n.id;
     const addr = addrOf(n.id);
+    const icon = guessIcon(n.text);
     card.innerHTML = (addr ? `<div class="addr">${esc(addr)}</div>` : "")
+      + (icon ? `<div class="cicon">${icon}</div>` : "")
       + `<div class="tx">${esc(n.text || "（空白）")}</div><div class="cf">${f}/8</div>`;
     wrap.appendChild(card);
     cv.cards.set(n.id, card);
@@ -907,6 +961,8 @@ app.addEventListener("input", e=>{
     if(!n.cells[i]){ const id = uid("n"); P().nodes[id] = {id, text:"", parent:n.id, cells:null}; n.cells[i] = id; }
     N(n.cells[i]).text = ta.value;
   }
+  const iconEl = ta.closest(".cell") && ta.closest(".cell").querySelector(".cicon");
+  if(iconEl) iconEl.textContent = guessIcon(ta.value);
   fit(ta); refreshSheet(); touch();
 });
 
