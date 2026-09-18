@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>曼陀羅筆記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF0EC; --sheet:#FAFBF8; --ink:#1C2440; --indigo:#2B3A78; --indigo-soft:#DCE1EF;
+  --muted:#6B7185; --line:#C6CBD6; --seal:#B3302A; --seal-soft:#F3DEDA; --ok:#2B6A4F;
+  --idea:"LXGW WenKai TC","Kaiti TC","BiauKai","STKaiti","KaiTi",serif;
+  --ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12151F; --sheet:#1A1F2D; --ink:#E6E8F0; --indigo:#8C9BE0; --indigo-soft:#262E4A;
+    --muted:#9097AB; --line:#353C52; --seal:#E0655B; --seal-soft:#3A2224; --ok:#6CC49B;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12151F; --sheet:#1A1F2D; --ink:#E6E8F0; --indigo:#8C9BE0; --indigo-soft:#262E4A;
+  --muted:#9097AB; --line:#353C52; --seal:#E0655B; --seal-soft:#3A2224; --ok:#6CC49B;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:16px 16px 64px}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.brand{font-family:var(--idea);font-weight:700;font-size:22px;background:none;border:0;padding:0;color:var(--ink)}
+.sync{font-size:12px;color:var(--muted);margin-left:auto}
+.btn{border:1px solid var(--line);background:var(--sheet);border-radius:8px;padding:6px 12px;font-size:14px}
+.btn:hover{border-color:var(--indigo)}
+.btn.primary{background:var(--indigo);border-color:var(--indigo);color:var(--sheet)}
+.btn.ghost{background:none;border-color:transparent}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* home */
+.home h1{font-family:var(--idea);font-size:34px;font-weight:700;margin:28px 0 6px;letter-spacing:.02em}
+.home .lede{color:var(--muted);max-width:36em;margin:0 0 24px}
+.newrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.newrow input{flex:1 1 260px;font-family:var(--idea);font-size:18px;padding:10px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--sheet);color:var(--ink)}
+.newrow input:focus{border-color:var(--indigo);outline:none}
+.plist{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.pitem{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.pitem:hover{border-color:var(--indigo)}
+.popen{background:none;border:0;padding:0;text-align:left;display:flex;flex-direction:column;gap:6px;border-radius:6px}
+.pitem .t{font-family:var(--idea);font-size:19px;font-weight:700;line-height:1.35}
+.pitem .m{font-size:13px;color:var(--muted)}
+.pitem .m b{color:var(--seal);font-weight:600}
+.pactions{display:flex;gap:6px;margin-top:4px}
+.pactions .btn{font-size:12px;padding:3px 9px}
+.empty-note{color:var(--muted);font-size:14px}
+.homefoot{margin-top:32px;display:flex;gap:8px;flex-wrap:wrap}
+
+/* sheet header */
+.crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-family:var(--idea);font-size:16px;margin:4px 0 10px}
+.crumbs button{background:none;border:0;padding:2px 4px;border-radius:4px;color:var(--muted);max-width:14em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbs button:hover{color:var(--indigo);background:var(--indigo-soft)}
+.crumbs .sep{color:var(--line)}
+.crumbs .here{color:var(--ink);font-weight:700;padding:2px 4px}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--sheet)}
+.seg button{border:0;background:none;padding:6px 12px;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--indigo);color:var(--sheet)}
+.bar .spacer{flex:1}
+.strict{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);user-select:none}
+
+/* the counter — the one bold thing */
+.stage{display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;gap:14px}
+.counter{font-family:var(--idea);font-weight:700;font-size:clamp(22px,4vw,30px);color:var(--seal);min-height:1.4em;text-align:center}
+.counter.full{color:var(--ok)}
+.counter small{display:block;font-family:var(--ui);font-weight:400;font-size:13px;color:var(--muted);margin-top:2px}
+.counter.shake{animation:shake .38s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+
+.grid{width:min(94vw,600px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:7px}
+.cell{position:relative;background:var(--sheet);border:1.5px dashed var(--seal);border-radius:10px;display:flex}
+.cell.filled{border-style:solid;border-color:var(--line)}
+.cell.filled:focus-within,.cell:focus-within{border-color:var(--indigo);border-style:solid}
+.cell textarea{flex:1;width:100%;border:0;background:transparent;resize:none;padding:10px 10px 26px;font-family:var(--idea);color:var(--ink);text-align:center;line-height:1.3;font-size:var(--fs,19px);border-radius:10px;display:block}
+.cell textarea:focus{outline:none}
+.cell textarea::placeholder{color:var(--seal);opacity:.55}
+.cell.center{background:var(--indigo);border:0}
+.cell.center textarea{color:#fff;font-weight:700;padding-bottom:10px}
+:root[data-theme="dark"] .cell.center textarea{color:#10131C}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cell.center textarea{color:#10131C}}
+.cell.center.done{box-shadow:0 0 0 4px var(--paper),0 0 0 6px var(--ok)}
+.dive{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);border:0;background:var(--indigo-soft);color:var(--indigo);font-size:12px;padding:1px 9px;border-radius:99px;white-space:nowrap;display:none}
+.cell.filled .dive{display:block}
+.dive.locked{background:transparent;color:var(--muted)}
+.dive .n{font-weight:700}
+.dive.has{background:var(--indigo);color:var(--sheet)}
+.dive.has.part{background:var(--seal-soft);color:var(--seal)}
+
+.hint{font-size:13px;color:var(--muted);text-align:center;max-width:36em}
+kbd{font-family:var(--ui);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--sheet)}
+
+/* 81 view */
+.big{width:min(96vw,760px);aspect-ratio:1/1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.block{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2px;border:0;padding:3px;border-radius:8px;background:var(--line);text-align:center}
+.block:hover{background:var(--indigo)}
+.block.cur{background:var(--indigo)}
+.block.void{background:transparent;border:1.5px dashed var(--line);cursor:default}
+.mini{background:var(--sheet);font-family:var(--idea);font-size:clamp(8px,1.35vw,12px);line-height:1.2;display:flex;align-items:center;justify-content:center;padding:2px;overflow:hidden;border-radius:3px;word-break:break-all}
+.mini.c{background:var(--indigo-soft);font-weight:700}
+.block.cur .mini.c{background:var(--indigo);color:var(--sheet)}
+.mini.e{background:var(--sheet);opacity:.55}
+
+/* tree */
+.tree{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:16px 18px;width:100%;max-width:760px;font-family:var(--idea);font-size:17px}
+.tree ul{list-style:none;margin:0;padding-left:1.3em;border-left:1px solid var(--line)}
+.tree>ul{border-left:0;padding-left:0}
+.tree li{margin:3px 0}
+.tree button{background:none;border:0;padding:1px 4px;border-radius:4px;text-align:left;font-family:inherit;font-size:inherit}
+.tree button:hover{background:var(--indigo-soft)}
+.tree .cnt{font-family:var(--ui);font-size:12px;color:var(--muted);margin-left:6px}
+.tree .cnt.part{color:var(--seal)}
+.tree .me>button{font-weight:700;color:var(--indigo)}
+
+/* drawer */
+.drawer{position:fixed;inset:0;background:rgba(10,12,20,.35);display:none;z-index:20}
+.drawer.open{display:block}
+.panel{position:absolute;right:0;top:0;bottom:0;width:min(360px,92vw);background:var(--sheet);border-left:1px solid var(--line);padding:18px;overflow:auto}
+.panel h2{font-family:var(--idea);font-size:20px;margin:0 0 4px}
+.panel p{color:var(--muted);font-size:13px;margin:0 0 14px}
+.panel ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.panel li button{width:100%;text-align:left;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 10px}
+.panel li button:hover{border-color:var(--indigo)}
+.panel .it{font-family:var(--idea);font-size:16px;display:block}
+.panel .pth{font-size:12px;color:var(--muted)}
+.panel .lack{font-size:12px;color:var(--seal)}
+.badge{display:inline-block;min-width:1.5em;padding:0 6px;border-radius:99px;background:var(--seal);color:#fff;font-size:12px;text-align:center;margin-left:4px}
+
+/* modal + toast */
+.modal{position:fixed;inset:0;background:rgba(10,12,20,.4);display:none;align-items:center;justify-content:center;z-index:30;padding:16px}
+.modal.open{display:flex}
+.box{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:18px;width:min(560px,100%);max-height:90vh;display:flex;flex-direction:column;gap:10px}
+.box h3{margin:0;font-family:var(--idea);font-size:19px}
+.box textarea{width:100%;min-height:260px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--paper);color:var(--ink)}
+.box .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:40;max-width:92vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion: reduce){.counter.shake{animation:none}.toast{transition:none}}
+@media (max-width:520px){
+  .cell textarea{padding:6px 5px 22px}
+  .grid{gap:5px}
+  .dive{font-size:11px;padding:0 7px}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="panel" role="dialog" aria-label="還沒填滿的紙">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2>還沒填滿的紙</h2>
+      <button class="btn ghost" id="closeDrawer" aria-label="關閉">關閉</button>
+    </div>
+    <p>已經開始寫、但八格還沒填滿的每一張。回去把它們填完。</p>
+    <ul id="unfinishedList"></ul>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h3 id="mTitle"></h3>
+    <div id="mBody"></div>
+    <div class="row" id="mRow"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+
+<script>
+(function(){
+"use strict";
+const LS_KEY = "mandala-notes-v1";
+const PREF_KEY = "mandala-prefs-v1";
+const app = document.getElementById("app");
+const POS = [0,1,2,3,5,6,7,8]; // grid positions for cells 0..7 (4 = center)
+
+let projects = {};           // id -> project
+let prefs = {strict:true};
+let cur = {pid:null, nid:null, view:"sheet"};
+let remote = null;           // {col}
+let syncLabel = "只存在這台裝置";
+
+/* ---------- utils ---------- */
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+function loadLocal(){
+  try{ const raw = localStorage.getItem(LS_KEY); if(raw) projects = JSON.parse(raw) || {}; }catch(e){ projects = {}; }
+  try{ const p = localStorage.getItem(PREF_KEY); if(p) prefs = Object.assign(prefs, JSON.parse(p)); }catch(e){}
+}
+function saveLocal(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(projects)); }catch(e){}
+}
+function savePrefs(){ try{ localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); }catch(e){} }
+
+/* ---------- model ---------- */
+function newProject(title){
+  const pid = uid("p"), rid = uid("n");
+  const p = {id:pid, title, rootId:rid, created:Date.now(), updated:Date.now(),
+    nodes:{[rid]:{id:rid, text:title, parent:null, cells:[null,null,null,null,null,null,null,null]}}};
+  projects[pid] = p; return p;
+}
+const P = () => projects[cur.pid];
+const N = id => P().nodes[id];
+function ensureCells(n){ if(!n.cells) n.cells = [null,null,null,null,null,null,null,null]; return n.cells; }
+function cellText(n,i){ const c = n.cells && n.cells[i]; const cn = c && P().nodes[c]; return cn ? cn.text : ""; }
+function filledCount(n, proj){
+  proj = proj || P(); if(!n.cells) return 0;
+  return n.cells.reduce((a,c)=> a + (c && proj.nodes[c] && proj.nodes[c].text.trim() ? 1 : 0), 0);
+}
+function started(n, proj){ return filledCount(n, proj) > 0; }
+function pathOf(id){ const out=[]; let n=N(id); while(n){ out.unshift(n); n = n.parent ? N(n.parent) : null; } return out; }
+function unfinished(proj){
+  const out=[];
+  Object.values(proj.nodes).forEach(n=>{
+    const f = filledCount(n, proj);
+    const isRoot = n.id === proj.rootId;
+    if((f>0 || isRoot) && f<8 && (n.text.trim() || isRoot)) out.push({n, f});
+  });
+  return out;
+}
+function touch(){ const p = P(); p.updated = Date.now(); scheduleSave(p.id); }
+
+/* ---------- persistence ---------- */
+const pending = new Set(); let saveTimer = null;
+function scheduleSave(pid){
+  saveLocal(); pending.add(pid);
+  clearTimeout(saveTimer); saveTimer = setTimeout(flush, 900);
+}
+async function flush(){
+  if(!remote) { pending.clear(); return; }
+  const ids = [...pending]; pending.clear();
+  for(const id of ids){
+    try{
+      const p = projects[id];
+      if(p) await remote.col.doc(id).set({title:p.title, updated:p.updated, json:JSON.stringify(p)});
+      else await remote.col.doc(id).delete();
+      setSync("已儲存到你的帳號");
+    }catch(e){ setSync("雲端儲存失敗，已先存在這台裝置"); }
+  }
+}
+function setSync(t){ syncLabel = t; const el = document.getElementById("sync"); if(el) el.textContent = t; }
+
+async function connectRemote(){
+  if(!window.claude || !window.claude.use) return;
+  try{
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if(!db || !user) return;
+    const id = await user.id(); if(!id) return;
+    const col = db.doc("data/users/" + id + "/profile").collection("sheets");
+    const snap = await col.get();
+    let changed = false; const seen = new Set();
+    snap.docs.forEach(d=>{
+      const body = d.data(); if(!body || typeof body.json !== "string") return;
+      seen.add(d.id);
+      try{
+        const rp = JSON.parse(body.json);
+        const lp = projects[d.id];
+        if(!lp || (rp.updated||0) > (lp.updated||0)){ projects[d.id] = rp; changed = true; }
+        else if((lp.updated||0) > (rp.updated||0)) pending.add(d.id);
+      }catch(e){}
+    });
+    Object.keys(projects).forEach(k=>{ if(!seen.has(k)) pending.add(k); });
+    remote = {col};
+    setSync("已儲存到你的帳號");
+    if(changed){ saveLocal(); if(!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render(); }
+    if(pending.size) flush();
+  }catch(e){ /* stay local */ }
+}
+
+/* ---------- rendering ---------- */
+function render(){
+  if(!cur.pid || !projects[cur.pid]) return renderHome();
+  if(!N(cur.nid)) cur.nid = P().rootId;
+  if(cur.view === "big") return renderBig();
+  if(cur.view === "tree") return renderTree();
+  renderSheet();
+}
+
+function topBar(inProject){
+  const p = inProject ? P() : null;
+  const u = p ? unfinished(p).length : 0;
+  return `<div class="top">
+    <button class="brand" data-act="home" title="回到所有主題">曼陀羅筆記</button>
+    ${p ? `<button class="btn" data-act="drawer">還沒填滿的紙${u?`<span class="badge">${u}</span>`:""}</button>` : ""}
+    <span class="sync" id="sync">${esc(syncLabel)}</span>
+  </div>`;
+}
+
+function renderHome(){
+  cur = {pid:null, nid:null, view:"sheet"};
+  const list = Object.values(projects).sort((a,b)=>b.updated-a.updated);
+  app.innerHTML = topBar(false) + `<section class="home">
+    <h1>把八格填滿。</h1>
+    <p class="lede">在中心寫下要想的事，逼自己把周圍八格都填上。任何一格有疑義，就讓它成為新的中心，再填八格。</p>
+    <div class="newrow">
+      <input id="newTitle" placeholder="中心主題，例如：電動三輪車目標市場的尋找" maxlength="80" aria-label="新主題">
+      <button class="btn primary" data-act="create">開一張新的</button>
+    </div>
+    ${list.length ? `<div class="plist">${list.map(p=>{
+      const u = unfinished(p).length, sheets = Object.values(p.nodes).filter(n=>started(n,p)).length;
+      return `<div class="pitem">
+        <button class="popen" data-act="open" data-id="${p.id}">
+          <span class="t">${esc(p.title)}</span>
+          <span class="m">${sheets} 張紙${u?`，<b>${u} 張還沒填滿</b>`:"，全部填滿"}<br>${new Date(p.updated).toLocaleString("zh-TW",{dateStyle:"medium",timeStyle:"short"})}</span>
+        </button>
+        <div class="pactions">
+          <button class="btn" data-act="rename" data-id="${p.id}">改名</button>
+          <button class="btn" data-act="del" data-id="${p.id}">刪除</button>
+        </div>
+      </div>`;}).join("")}</div>`
+    : `<p class="empty-note">還沒有任何主題。在上面寫下一個，或先看看範例。</p>`}
+    <div class="homefoot">
+      <button class="btn" data-act="example">載入範例：電動三輪車</button>
+      <button class="btn" data-act="exportAll">備份全部（JSON）</button>
+      <button class="btn" data-act="import">匯入備份</button>
+    </div>
+  </section>`;
+  const inp = document.getElementById("newTitle");
+  inp.addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.isComposing) create(); });
+}
+
+function projHeader(){
+  const path = pathOf(cur.nid);
+  const crumbs = path.map((n,i)=> i===path.length-1
+    ? `<span class="here">${esc(n.text||"（空白）")}</span>`
+    : `<button data-act="go" data-id="${n.id}" title="${esc(n.text)}">${esc(n.text||"（空白）")}</button><span class="sep">›</span>`).join("");
+  return `<nav class="crumbs" aria-label="層級">${crumbs}</nav>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="檢視方式">
+      <button data-act="view" data-v="sheet" aria-pressed="${cur.view==="sheet"}">單張</button>
+      <button data-act="view" data-v="big" aria-pressed="${cur.view==="big"}">81 格</button>
+      <button data-act="view" data-v="tree" aria-pressed="${cur.view==="tree"}">全貌</button>
+    </div>
+    ${path.length>1?`<button class="btn" data-act="up">回上一層</button>`:""}
+    <span class="spacer"></span>
+    <label class="strict"><input type="checkbox" id="strictBox" ${prefs.strict?"checked":""}> 填滿八格才能往下</label>
+    <button class="btn" data-act="exportMd">匯出大綱</button>
+  </div>`;
+}
+
+function renderSheet(){
+  const n = N(cur.nid); ensureCells(n);
+  let cells = new Array(9);
+  cells[4] = `<div class="cell center" id="centerCell"><textarea data-center="1" aria-label="中心" rows="3">${esc(n.text)}</textarea></div>`;
+  for(let i=0;i<8;i++){
+    cells[POS[i]] = `<div class="cell" data-i="${i}"><textarea data-i="${i}" aria-label="第 ${i+1} 格" placeholder="…" rows="3">${esc(cellText(n,i))}</textarea><button class="dive" data-act="dive" data-i="${i}"></button></div>`;
+  }
+  app.innerHTML = topBar(true) + projHeader() + `<div class="stage">
+    <div class="counter" id="counter" aria-live="polite"></div>
+    <div class="grid" id="grid">${cells.join("")}</div>
+    <p class="hint">任一格寫好後，按格子下方的「往下想」，或在格子裡按 <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd>，它就會成為新的中心。<kbd>Esc</kbd> 回上一層。</p>
+  </div>`;
+  app.querySelectorAll(".cell textarea").forEach(ta=>{ fit(ta); });
+  refreshSheet();
+  const firstEmpty = [...app.querySelectorAll('.cell:not(.center) textarea')].find(t=>!t.value.trim());
+  if(firstEmpty && window.matchMedia("(hover:hover)").matches) firstEmpty.focus({preventScroll:true});
+}
+
+function fit(ta){
+  const len = [...ta.value].length;
+  const w = ta.clientWidth || 180;
+  let fs = w/7.2;
+  if(len>8) fs = w/8.5; if(len>16) fs = w/10.5; if(len>30) fs = w/13; if(len>50) fs = w/16; if(len>80) fs = w/19;
+  fs = Math.max(11, Math.min(fs, ta.dataset.center ? 30 : 26));
+  ta.style.setProperty("--fs", fs.toFixed(1)+"px");
+  // vertically center the text inside the cell
+  const cs = getComputedStyle(ta), pb = parseFloat(cs.paddingBottom) || 0, full = ta.clientHeight;
+  if(!full) return;
+  ta.style.paddingTop = "0px"; ta.style.height = "1px";
+  const content = ta.scrollHeight - pb;
+  ta.style.height = "";
+  const lh = parseFloat(cs.lineHeight) || fs*1.3;
+  const h = ta.value ? content : lh;
+  ta.style.paddingTop = Math.max(6, (full - pb - h)/2 + (ta.dataset.center ? pb/2 : 0)) + "px";
+}
+
+function refreshSheet(){
+  const n = N(cur.nid); const f = filledCount(n); const full = f===8;
+  const counter = document.getElementById("counter");
+  if(counter){
+    counter.className = "counter" + (full ? " full" : "");
+    counter.innerHTML = full
+      ? `八格填滿了<small>挑一格有疑義的，讓它成為新的中心。</small>`
+      : `還差 ${8-f} 格<small>${f===0?"想到什麼寫什麼，不必有順序。":"最後幾格最難，也最常冒出意外的點子。"}</small>`;
+  }
+  const cc = document.getElementById("centerCell"); if(cc) cc.classList.toggle("done", full);
+  app.querySelectorAll(".cell[data-i]").forEach(el=>{
+    const i = +el.dataset.i; const t = cellText(n,i).trim();
+    el.classList.toggle("filled", !!t);
+    const b = el.querySelector(".dive");
+    const child = n.cells[i] && N(n.cells[i]);
+    const cf = child ? filledCount(child) : 0;
+    b.className = "dive";
+    if(cf>0){ b.classList.add("has"); if(cf<8) b.classList.add("part"); b.innerHTML = `往下 <span class="n">${cf}/8</span>`; b.title = "打開這一格的紙"; }
+    else if(prefs.strict && !full){ b.classList.add("locked"); b.textContent = "先填滿八格"; b.title = "填滿這張的八格後，才能往下想"; }
+    else { b.textContent = "往下想"; b.title = "讓這一格成為新的中心"; }
+  });
+}
+
+function dive(i){
+  const n = N(cur.nid); const cid = n.cells[i]; const child = cid && N(cid);
+  if(!child || !child.text.trim()) return;
+  if(filledCount(child)===0 && prefs.strict && filledCount(n)<8){
+    const c = document.getElementById("counter");
+    if(c){ c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); }
+    toast(`這張還差 ${8-filledCount(n)} 格，填滿才能往下`);
+    return;
+  }
+  ensureCells(child);
+  go(cid);
+}
+function go(id){
+  const here = N(cur.nid); const f = filledCount(here);
+  if(id !== cur.nid && f>0 && f<8 && !isAncestor(cur.nid, id)) toast(`「${short(here.text)}」還差 ${8-f} 格，已放進「還沒填滿的紙」`);
+  cur.nid = id; render();
+  window.scrollTo({top:0});
+}
+function isAncestor(a, b){ let n = N(b); while(n && n.parent){ if(n.parent===a) return true; n = N(n.parent); } return false; }
+const short = s => { s = s.trim(); return s.length>12 ? s.slice(0,12)+"…" : s; };
+
+function renderBig(){
+  const n = N(cur.nid); ensureCells(n);
+  const block = (node, isCur, idx) => {
+    if(!node) return `<div class="block void" aria-hidden="true"></div>`;
+    ensureCells(node);
+    const minis = new Array(9);
+    minis[4] = `<span class="mini c">${esc(node.text)}</span>`;
+    for(let i=0;i<8;i++){ const t = cellText(node,i); minis[POS[i]] = `<span class="mini${t.trim()?"":" e"}">${esc(t)}</span>`; }
+    return `<button class="block${isCur?" cur":""}" data-act="${isCur?"view":"dive"}" ${isCur?'data-v="sheet"':`data-i="${idx}"`} title="${esc(node.text)}">${minis.join("")}</button>`;
+  };
+  const blocks = new Array(9);
+  blocks[4] = block(n, true);
+  for(let i=0;i<8;i++){ const c = n.cells[i] && N(n.cells[i]); blocks[POS[i]] = block(c && c.text.trim() ? c : null, false, i); }
+  app.innerHTML = topBar(true) + projHeader() + `<div class="stage">
+    <div class="big">${blocks.join("")}</div>
+    <p class="hint">中間是目前這張紙，四周是每一格往下展開的紙。點任一塊就能進去。</p>
+  </div>`;
+}
+
+function renderTree(){
+  const p = P();
+  const walk = id => {
+    const n = N(id); const kids = (n.cells||[]).map(c=>c && N(c)).filter(c=>c && c.text.trim());
+    const f = filledCount(n);
+    const cnt = (f>0 || id===p.rootId) ? `<span class="cnt${f<8?" part":""}">${f}/8</span>` : "";
+    return `<li class="${id===cur.nid?"me":""}"><button data-act="gosheet" data-id="${id}">${esc(n.text||"（空白）")}</button>${cnt}${kids.length?`<ul>${kids.map(k=>walk(k.id)).join("")}</ul>`:""}</li>`;
+  };
+  app.innerHTML = topBar(true) + projHeader() + `<div class="stage">
+    <div class="tree"><ul>${walk(p.rootId)}</ul></div>
+    <p class="hint">所有想法的層級關係。紅色數字是還沒填滿的紙。</p>
+  </div>`;
+}
+
+function openDrawer(){
+  const p = P(); const list = unfinished(p);
+  const ul = document.getElementById("unfinishedList");
+  ul.innerHTML = list.length ? list.map(({n,f})=>{
+    const path = pathOf(n.id).slice(0,-1).map(x=>short(x.text)).join(" › ");
+    return `<li><button data-act="gosheet" data-id="${n.id}"><span class="it">${esc(n.text||"（空白）")}</span>${path?`<span class="pth">${esc(path)}</span><br>`:""}<span class="lack">還差 ${8-f} 格</span></button></li>`;
+  }).join("") : `<li class="empty-note">每一張都填滿了。</li>`;
+  const d = document.getElementById("drawer"); d.classList.add("open"); d.setAttribute("aria-hidden","false");
+}
+function closeDrawer(){ const d = document.getElementById("drawer"); d.classList.remove("open"); d.setAttribute("aria-hidden","true"); }
+
+/* ---------- modal ---------- */
+function modal(title, bodyHTML, buttons){
+  document.getElementById("mTitle").textContent = title;
+  document.getElementById("mBody").innerHTML = bodyHTML;
+  const row = document.getElementById("mRow"); row.innerHTML = "";
+  buttons.forEach(b=>{ const el = document.createElement("button"); el.className = "btn" + (b.primary?" primary":""); el.textContent = b.label; el.onclick = ()=>{ const keep = b.fn && b.fn(); if(!keep) closeModal(); }; row.appendChild(el); });
+  document.getElementById("modal").classList.add("open");
+  const f = document.querySelector("#mBody input, #mBody textarea"); if(f) setTimeout(()=>f.focus(),30);
+}
+function closeModal(){ document.getElementById("modal").classList.remove("open"); }
+
+/* ---------- export ---------- */
+function toMarkdown(p){
+  const lines = [`# ${p.title}`, ""];
+  const walk = (id, depth) => {
+    const n = p.nodes[id];
+    (n.cells||[]).forEach(c=>{ const cn = c && p.nodes[c]; if(cn && cn.text.trim()){ lines.push("  ".repeat(depth) + "- " + cn.text.trim().replace(/\n+/g," ")); walk(cn.id, depth+1); } });
+  };
+  walk(p.rootId, 0);
+  return lines.join("\n");
+}
+async function offerFile(filename, text, title){
+  let dl = null;
+  try{ dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; }catch(e){}
+  if(dl){
+    try{ const r = await dl.save({filename, data:text}); if(r && r.status==="saved") toast("已下載"); return; }
+    catch(e){ if(e && e.code === "declined") return; }
+  }
+  modal(title, `<p style="margin:0;font-size:13px;color:var(--muted)">這裡無法直接下載，請全選複製。</p><textarea readonly>${esc(text)}</textarea>`,
+    [{label:"複製", primary:true, fn:()=>{ const ta = document.querySelector("#mBody textarea"); ta.select(); try{ navigator.clipboard.writeText(text).then(()=>toast("已複製")); }catch(e){ document.execCommand("copy"); toast("已複製"); } return true; }},{label:"關閉"}]);
+}
+function safeName(s){ return (s||"曼陀羅").replace(/[\\/:*?"<>|\n]/g,"").slice(0,40) || "曼陀羅"; }
+
+/* ---------- actions ---------- */
+function create(){
+  const inp = document.getElementById("newTitle"); const t = inp && inp.value.trim();
+  if(!t){ inp && inp.focus(); toast("先寫下中心主題"); return; }
+  const p = newProject(t); scheduleSave(p.id);
+  cur = {pid:p.id, nid:p.rootId, view:"sheet"}; render();
+}
+function loadExample(){
+  const p = newProject("電動三輪車目標市場的尋找");
+  const r = p.nodes[p.rootId];
+  ["只能慢充","續航 100 公里","車重 200 公斤","不需加油","不需更換耗材","三年持有成本 2000 元","售價 31 萬","接送小孩"].forEach((t,i)=>{
+    const id = uid("n"); p.nodes[id] = {id, text:t, parent:r.id, cells:[null,null,null,null,null,null,null,null]}; r.cells[i] = id;
+  });
+  const gas = p.nodes[r.cells[3]];
+  ["加油站少的偏鄉","討厭跑加油站的長輩"].forEach((t,i)=>{ const id = uid("n"); p.nodes[id] = {id, text:t, parent:gas.id, cells:[null,null,null,null,null,null,null,null]}; gas.cells[i] = id; });
+  scheduleSave(p.id);
+  cur = {pid:p.id, nid:p.rootId, view:"sheet"}; render();
+  toast("範例：「不需加油」已經往下開了一張，還差 6 格");
+}
+
+app.addEventListener("click", e=>{
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  switch(act){
+    case "home": renderHome(); break;
+    case "create": create(); break;
+    case "example": loadExample(); break;
+    case "open": cur = {pid:id, nid:projects[id].rootId, view:"sheet"}; render(); break;
+    case "rename": {
+      const p = projects[id];
+      modal("改名", `<input id="rn" class="btn" style="width:100%;font-family:var(--idea);font-size:17px;text-align:left" value="${esc(p.title)}" maxlength="80">`,
+        [{label:"取消"},{label:"儲存", primary:true, fn:()=>{ const v = document.getElementById("rn").value.trim(); if(!v) return true; p.title = v; p.nodes[p.rootId].text = v; p.updated = Date.now(); scheduleSave(p.id); renderHome(); }}]);
+      break;
+    }
+    case "del": {
+      const p = projects[id];
+      modal("刪除這個主題？", `<p style="margin:0">「${esc(p.title)}」和底下所有的紙都會刪除，無法復原。</p>`,
+        [{label:"取消"},{label:"刪除", primary:true, fn:()=>{ delete projects[id]; scheduleSave(id); renderHome(); toast("已刪除"); }}]);
+      break;
+    }
+    case "exportAll": offerFile("曼陀羅筆記備份.json", JSON.stringify({app:"mandala-notes", version:1, projects}, null, 1), "備份全部"); break;
+    case "import": document.getElementById("fileIn").click(); break;
+    case "drawer": openDrawer(); break;
+    case "view": cur.view = b.dataset.v; render(); break;
+    case "up": { const n = N(cur.nid); if(n.parent) go(n.parent); break; }
+    case "go": go(id); break;
+    case "gosheet": cur.view = "sheet"; go(id); break;
+    case "dive": dive(+b.dataset.i); break;
+    case "exportMd": offerFile(safeName(P().title)+".md", toMarkdown(P()), "匯出大綱"); break;
+  }
+});
+document.getElementById("drawer").addEventListener("click", e=>{
+  if(e.target.id==="drawer" || e.target.id==="closeDrawer"){ closeDrawer(); return; }
+  const b = e.target.closest("[data-act='gosheet']"); if(b){ closeDrawer(); cur.view="sheet"; go(b.dataset.id); }
+});
+document.getElementById("modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
+
+app.addEventListener("change", e=>{
+  if(e.target.id==="strictBox"){ prefs.strict = e.target.checked; savePrefs(); if(cur.view==="sheet") refreshSheet(); }
+});
+
+app.addEventListener("input", e=>{
+  const ta = e.target; if(ta.tagName!=="TEXTAREA" || !cur.pid) return;
+  const n = N(cur.nid); ensureCells(n);
+  if(ta.dataset.center){
+    n.text = ta.value;
+    if(n.id === P().rootId) P().title = ta.value.trim() || P().title;
+  } else {
+    const i = +ta.dataset.i;
+    if(!n.cells[i]){ const id = uid("n"); P().nodes[id] = {id, text:"", parent:n.id, cells:null}; n.cells[i] = id; }
+    N(n.cells[i]).text = ta.value;
+  }
+  fit(ta); refreshSheet(); touch();
+});
+
+app.addEventListener("keydown", e=>{
+  const ta = e.target; if(ta.tagName!=="TEXTAREA") return;
+  if(e.key==="Enter" && (e.ctrlKey||e.metaKey) && ta.dataset.i!==undefined){ e.preventDefault(); dive(+ta.dataset.i); }
+  else if(e.key==="Enter" && !e.shiftKey && !e.isComposing && !(e.ctrlKey||e.metaKey)){
+    // plain Enter jumps to the next empty cell (Shift+Enter for a line break)
+    e.preventDefault();
+    const all = [...app.querySelectorAll(".cell:not(.center) textarea")];
+    const next = all.find(t=>t!==ta && !t.value.trim()) || all[(all.indexOf(ta)+1)%all.length];
+    next && next.focus();
+  }
+});
+document.addEventListener("keydown", e=>{
+  if(e.key!=="Escape") return;
+  if(document.getElementById("modal").classList.contains("open")){ closeModal(); return; }
+  if(document.getElementById("drawer").classList.contains("open")){ closeDrawer(); return; }
+  if(cur.pid){ const n = N(cur.nid); if(n.parent){ e.preventDefault(); go(n.parent); } }
+});
+
+document.getElementById("fileIn").addEventListener("change", async e=>{
+  const f = e.target.files[0]; e.target.value = ""; if(!f) return;
+  try{
+    const data = JSON.parse(await f.text());
+    const ps = data && data.projects; if(!ps || typeof ps !== "object") throw 0;
+    let k = 0;
+    Object.values(ps).forEach(p=>{ if(p && p.id && p.nodes && p.rootId){ projects[p.id] = p; scheduleSave(p.id); k++; } });
+    renderHome(); toast(`匯入了 ${k} 個主題`);
+  }catch(err){ toast("這個檔案不是曼陀羅筆記的備份"); }
+});
+
+let rz; window.addEventListener("resize", ()=>{ clearTimeout(rz); rz = setTimeout(()=>app.querySelectorAll(".cell textarea").forEach(fit), 120); });
+
+/* ---------- boot ---------- */
+loadLocal();
+render();
+connectRemote();
+})();
+</script>
+</body>
+</html>
