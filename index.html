@@ -144,6 +144,9 @@ kbd{font-family:var(--ui);font-size:12px;border:1px solid var(--line);border-bot
 .ccard.root .cf{color:var(--indigo-soft)}
 .ccard.full{border-color:var(--ok)}
 .ccard.dragging{box-shadow:0 4px 14px rgba(20,20,30,.22);z-index:5}
+.ccard .addr{position:absolute;left:-9px;top:-9px;background:var(--seal);color:#fff;font-family:var(--ui);font-size:11px;
+  font-weight:700;min-width:20px;height:20px;line-height:20px;border-radius:999px;text-align:center;padding:0 5px;
+  box-shadow:0 1px 3px rgba(0,0,0,.28)}
 
 /* drawer */
 .drawer{position:fixed;inset:0;background:rgba(10,12,20,.35);display:none;z-index:20}
@@ -495,6 +498,19 @@ function renderTree(){
 /* ---------- canvas (spread view) ---------- */
 // direction of cell i (0..7) on the desk, matching the 3x3 layout used elsewhere
 const DIR = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+// classic mandala numbering for cell i (0..7): NW,N,NE,W,E,SW,S,SE -> 5,6,7,4,8,3,2,9
+const NUM = [5,6,7,4,8,3,2,9];
+function addrOf(id){
+  const parts = [];
+  let n = N(id);
+  while(n && n.parent){
+    const parent = N(n.parent);
+    const idx = parent.cells ? parent.cells.indexOf(n.id) : -1;
+    if(idx>=0) parts.unshift(NUM[idx]);
+    n = parent;
+  }
+  return parts.join("-");
+}
 const spacingAt = depth => 210 * Math.pow(0.68, Math.max(0, depth-1));
 let cv = null; // {wrap, svg, cards:Map, lines:Map, camera, dragging, panning}
 
@@ -542,7 +558,9 @@ function renderCanvas(){
     const f = filledCount(n);
     card.className = "ccard" + (n.id===P().rootId ? " root" : "") + (f===8 ? " full" : "");
     card.dataset.id = n.id;
-    card.innerHTML = `<div class="tx">${esc(n.text || "（空白）")}</div><div class="cf">${f}/8</div>`;
+    const addr = addrOf(n.id);
+    card.innerHTML = (addr ? `<div class="addr">${esc(addr)}</div>` : "")
+      + `<div class="tx">${esc(n.text || "（空白）")}</div><div class="cf">${f}/8</div>`;
     wrap.appendChild(card);
     cv.cards.set(n.id, card);
     if(parent){
