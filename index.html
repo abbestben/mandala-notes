@@ -144,9 +144,9 @@ kbd{font-family:var(--ui);font-size:12px;border:1px solid var(--line);border-bot
 .ccard.root .cf{color:var(--indigo-soft)}
 .ccard.full{border-color:var(--ok)}
 .ccard.dragging{box-shadow:0 4px 14px rgba(20,20,30,.22);z-index:5}
-.ccard .addr{position:absolute;left:-9px;top:-9px;background:var(--seal);color:#fff;font-family:var(--ui);font-size:11px;
+.addr{position:absolute;left:-9px;top:-9px;background:var(--seal);color:#fff;font-family:var(--ui);font-size:11px;
   font-weight:700;min-width:20px;height:20px;line-height:20px;border-radius:999px;text-align:center;padding:0 5px;
-  box-shadow:0 1px 3px rgba(0,0,0,.28)}
+  box-shadow:0 1px 3px rgba(0,0,0,.28);z-index:2}
 
 /* drawer */
 .drawer{position:fixed;inset:0;background:rgba(10,12,20,.35);display:none;z-index:20}
@@ -384,10 +384,12 @@ function projHeader(){
 
 function renderSheet(){
   const n = N(cur.nid); ensureCells(n);
+  const selfAddr = addrOf(cur.nid);
   let cells = new Array(9);
-  cells[4] = `<div class="cell center" id="centerCell"><textarea data-center="1" aria-label="中心" rows="3">${esc(n.text)}</textarea></div>`;
+  cells[4] = `<div class="cell center" id="centerCell">${selfAddr?`<div class="addr">${esc(selfAddr)}</div>`:""}<textarea data-center="1" aria-label="中心" rows="3">${esc(n.text)}</textarea></div>`;
   for(let i=0;i<8;i++){
-    cells[POS[i]] = `<div class="cell" data-i="${i}"><textarea data-i="${i}" aria-label="第 ${i+1} 格" placeholder="…" rows="3">${esc(cellText(n,i))}</textarea><button class="dive" data-act="dive" data-i="${i}"></button></div>`;
+    const addr = selfAddr ? selfAddr+"-"+NUM[i] : String(NUM[i]);
+    cells[POS[i]] = `<div class="cell" data-i="${i}"><div class="addr">${esc(addr)}</div><textarea data-i="${i}" aria-label="第 ${i+1} 格" placeholder="…" rows="3">${esc(cellText(n,i))}</textarea><button class="dive" data-act="dive" data-i="${i}"></button></div>`;
   }
   app.innerHTML = topBar(true) + projHeader() + `<div class="stage">
     <div class="counter" id="counter" aria-live="polite"></div>
