@@ -200,6 +200,9 @@ kbd{font-family:var(--ui);font-size:12px;border:1px solid var(--line);border-bot
   .cicon{font-size:32px;padding-top:6px}
 }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="wrap" id="app"></div>
@@ -238,6 +241,25 @@ let prefs = {strict:false};
 let cur = {pid:null, nid:null, view:"sheet"};
 let remote = null;           // {col}
 let syncLabel = "只存在這台裝置";
+
+/* Fill these in from your Firebase project's console (Project settings -> your app)
+   to turn on cross-device sync. Left blank, the app works exactly as before, local-only. */
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+let fbUser = null;  // {uid, email}
+let fbUnsub = null;
+function fbReady(){ return !!FIREBASE_CONFIG.apiKey && !!window.firebase; }
+function fbApp(){
+  if(!fbReady()) return null;
+  if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  return firebase;
+}
 
 /* ---------- utils ---------- */
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -535,6 +557,83 @@ async function connectRemote(){
   }catch(e){ /* stay local */ }
 }
 
+async function connectFirebase(uid){
+  const fb = fbApp(); if(!fb) return;
+  const col = fb.firestore().collection("users").doc(uid).collection("sheets");
+  try{
+    const snap = await col.get();
+    let changed = false; const seen = new Set();
+    snap.docs.forEach(d=>{
+      const body = d.data(); if(!body || typeof body.json !== "string") return;
+      seen.add(d.id);
+      try{
+        const rp = JSON.parse(body.json);
+        const lp = projects[d.id];
+        if(!lp || (rp.updated||0) > (lp.updated||0)){ projects[d.id] = rp; changed = true; }
+        else if((lp.updated||0) > (rp.updated||0)) pending.add(d.id);
+      }catch(e){}
+    });
+    Object.keys(projects).forEach(k=>{ if(!seen.has(k)) pending.add(k); });
+    remote = {col};
+    setSync("已同步：" + (fbUser ? fbUser.email : ""));
+    if(changed){ saveLocal(); if(!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render(); }
+    if(pending.size) flush();
+    if(fbUnsub) fbUnsub();
+    fbUnsub = col.onSnapshot(snap2=>{
+      let ch = false;
+      snap2.docChanges().forEach(chg=>{
+        if(chg.type === "removed"){ if(projects[chg.doc.id]){ delete projects[chg.doc.id]; ch = true; } return; }
+        const body = chg.doc.data(); if(!body || typeof body.json !== "string") return;
+        try{
+          const rp = JSON.parse(body.json);
+          const lp = projects[chg.doc.id];
+          if(!lp || (rp.updated||0) > (lp.updated||0)){ projects[chg.doc.id] = rp; ch = true; }
+        }catch(e){}
+      });
+      if(ch){ saveLocal(); if(!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render(); }
+    });
+  }catch(e){ setSync("雲端連線失敗，已先存在這台裝置"); }
+}
+function disconnectFirebase(){
+  if(fbUnsub){ fbUnsub(); fbUnsub = null; }
+  remote = null; fbUser = null; setSync("只存在這台裝置");
+}
+function openAuthModal(){
+  modal("登入同步", `
+    <p style="margin:0 0 8px;font-size:13px;color:var(--muted)">用 Email／密碼登入，其他裝置用同一組帳密登入就能同步。</p>
+    <input id="authEmail" class="btn" style="width:100%;text-align:left;margin-bottom:6px;display:block" placeholder="Email" type="email">
+    <input id="authPass" class="btn" style="width:100%;text-align:left;display:block" placeholder="密碼（至少 6 碼）" type="password">
+    <p id="authErr" style="margin:8px 0 0;font-size:12px;color:var(--seal);display:none"></p>
+  `, [
+    {label:"取消"},
+    {label:"註冊新帳號", fn:()=>{ doAuth("signup"); return true; }},
+    {label:"登入", primary:true, fn:()=>{ doAuth("signin"); return true; }}
+  ]);
+}
+async function doAuth(mode){
+  const email = document.getElementById("authEmail").value.trim();
+  const pass = document.getElementById("authPass").value;
+  const errEl = document.getElementById("authErr");
+  const fb = fbApp(); if(!fb) return;
+  try{
+    const cred = mode==="signup"
+      ? await fb.auth().createUserWithEmailAndPassword(email, pass)
+      : await fb.auth().signInWithEmailAndPassword(email, pass);
+    fbUser = {uid:cred.user.uid, email:cred.user.email};
+    await connectFirebase(fbUser.uid);
+    closeModal(); render();
+  }catch(e){
+    if(errEl){ errEl.textContent = e.message || "登入失敗"; errEl.style.display = "block"; }
+  }
+}
+function fbInit(){
+  const fb = fbApp(); if(!fb) return;
+  fb.auth().onAuthStateChanged(user=>{
+    if(user){ fbUser = {uid:user.uid, email:user.email}; connectFirebase(user.uid).then(render); }
+    else { fbUser = null; }
+  });
+}
+
 /* ---------- rendering ---------- */
 function render(){
   if(!cur.pid || !projects[cur.pid]) return renderHome();
@@ -553,6 +652,7 @@ function topBar(inProject){
     <button class="brand" data-act="home" title="回到所有主題">曼陀羅筆記</button>
     ${p ? `<button class="btn" data-act="drawer">還沒填滿的紙${u?`<span class="badge">${u}</span>`:""}</button>` : ""}
     <span class="sync" id="sync">${esc(syncLabel)}</span>
+    ${fbReady() ? `<button class="btn ghost" data-act="account" style="font-size:12px;padding:4px 8px">${fbUser?"登出":"登入同步"}</button>` : ""}
   </div>`;
 }
 
@@ -1075,6 +1175,13 @@ app.addEventListener("click", e=>{
   const act = b.dataset.act, id = b.dataset.id;
   switch(act){
     case "home": renderHome(); break;
+    case "account": {
+      if(fbUser){
+        modal("登出同步", `<p style="margin:0">登出後這台裝置會停止跟雲端同步，資料仍留在本機。確定登出嗎？</p>`,
+          [{label:"取消"},{label:"登出", primary:true, fn:()=>{ const fb=fbApp(); fb && fb.auth().signOut(); disconnectFirebase(); render(); }}]);
+      } else openAuthModal();
+      break;
+    }
     case "create": create(); break;
     case "example": loadExample(); break;
     case "open": cur = {pid:id, nid:projects[id].rootId, view:"sheet"}; render(); break;
@@ -1189,6 +1296,7 @@ let rz; window.addEventListener("resize", ()=>{ clearTimeout(rz); rz = setTimeou
 loadLocal();
 render();
 connectRemote();
+fbInit();
 })();
 </script>
 </body>
