@@ -745,18 +745,43 @@ function addrOf(id){
 const spacingAt = depth => 210 * Math.pow(0.68, Math.max(0, depth-1));
 let cv = null; // {wrap, svg, cards:Map, lines:Map, camera, dragging, panning}
 
+const CARD_COLLIDE_W = 168, CARD_COLLIDE_H = 118;
+function collides(a, b){ return Math.abs(a.x-b.x) < CARD_COLLIDE_W && Math.abs(a.y-b.y) < CARD_COLLIDE_H; }
+function placeAvoiding(originPos, dir, depth, placed){
+  let sp = spacingAt(depth);
+  for(let tries=0; tries<60; tries++){
+    const cand = {x:originPos.x+dir[0]*sp, y:originPos.y+dir[1]*sp};
+    if(!placed.some(p=>collides(p, cand))) return cand;
+    sp += 34;
+  }
+  return {x:originPos.x+dir[0]*sp, y:originPos.y+dir[1]*sp};
+}
 function assignPositions(){
   const root = N(P().rootId);
   if(!root.pos) root.pos = {x:0, y:0};
+  const placed = [];
+  (function collectPlaced(n){
+    if(n.pos) placed.push(n.pos);
+    ensureCells(n);
+    n.cells.forEach(cid=>{ const c = cid && N(cid); if(c) collectPlaced(c); });
+  })(root);
   (function walk(n, depth){
     ensureCells(n);
     n.cells.forEach((cid,i)=>{
       if(!cid) return;
       const c = N(cid); if(!c.text.trim()) return;
-      if(!c.pos){ const sp = spacingAt(depth+1); c.pos = {x:n.pos.x+DIR[i][0]*sp, y:n.pos.y+DIR[i][1]*sp}; }
+      if(!c.pos){ c.pos = placeAvoiding(n.pos, DIR[i], depth+1, placed); placed.push(c.pos); }
       walk(c, depth+1);
     });
   })(root, 0);
+}
+function tidyLayout(){
+  (function clearPos(n){
+    delete n.pos;
+    ensureCells(n);
+    n.cells.forEach(cid=>{ const c = cid && N(cid); if(c) clearPos(c); });
+  })(N(P().rootId));
+  touch();
 }
 function collectVisible(){
   const out = [];
@@ -778,6 +803,7 @@ function renderCanvas(){
       <span class="hint" id="cvZoomLbl" style="min-width:3.5em;text-align:center"></span>
       <button class="btn" data-act="cvZoomIn">＋</button>
       <button class="btn" data-act="cvCenter">置中</button>
+      <button class="btn" data-act="cvTidy">整理排版</button>
       <span class="spacer"></span>
       <span class="hint">拖紙可以移位置；拖空白處平移畫布；滾輪縮放</span>
     </div>
@@ -1076,6 +1102,11 @@ app.addEventListener("click", e=>{
     case "cvZoomIn": cvZoomBy(1.25); break;
     case "cvZoomOut": cvZoomBy(1/1.25); break;
     case "cvCenter": cv.camera.x=0; cv.camera.y=0; cv.camera.zoom=1; paintCanvas(); scheduleSave(P().id); break;
+    case "cvTidy": {
+      modal("整理排版", `<p style="margin:0">這會清除目前所有手動拖動過的位置，重新自動排列、避免互相遮擋。確定要整理嗎？</p>`,
+        [{label:"取消"},{label:"整理", primary:true, fn:()=>{ tidyLayout(); render(); }}]);
+      break;
+    }
     case "outImport": {
       const rows = ensureOutline();
       const go2 = ()=>{ importOutline(); render(); };
